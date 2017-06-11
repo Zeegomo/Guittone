@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
+    //getting the custom menu work
     public boolean onCreateOptionsMenu(Menu menu){
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(toolbar, menu);
@@ -102,15 +102,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_add:
-
+                //Adding new device to the device list
                 AddDevice();
                 return true;
 
             case R.id.action_info:
-
+                //not completed yet, again
                 return true;
 
             case R.id.action_reconnect:
+                //reconnecting devices
+
+                //creating message box
                 android.support.v7.app.AlertDialog.Builder alert = new android.support.v7.app.AlertDialog.Builder(this);
                 alert.setMessage("Make sure you are connected to GuittoneWiFi");
                 alert.setTitle("Reconnect device");
@@ -146,8 +149,11 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void AddDevice() {
+        //asking the device to give us his control addresses
         GetUrlAsyncTask url = new GetUrlAsyncTask();
         url.execute();
+
+        //creating message box
         android.support.v7.app.AlertDialog.Builder alert = new android.support.v7.app.AlertDialog.Builder(this);
         alert.setMessage("Make sure you are connected to GuittoneWiFi");
         alert.setTitle("Connect device");
@@ -176,12 +182,17 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
+
+    // the name itself, just saving things
     public void Save(){
+        //saving things
         SharedPreferences appSharedPrefs = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
         SharedPreferences.Editor prefsEditor = appSharedPrefs.edit();
         Gson gson = new Gson();
+        //saving the devices array list
         String json = gson.toJson(devices);
         prefsEditor.putString("Devices", json);
+
         prefsEditor.apply();
 
     }
@@ -225,128 +236,13 @@ public class MainActivity extends AppCompatActivity {
             instructionsTextView.setVisibility(View.VISIBLE);
         }*/
     }
+
+
      private boolean isNetworkAvailable() {
          ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
          NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
          return activeNetworkInfo != null && activeNetworkInfo.isConnected();
       }
-
-    private class CheckAsyncTask extends AsyncTask<URL, Void, ArrayList<Device>> {
-
-        @Override
-        protected ArrayList<Device> doInBackground(URL... urls) {
-            // Create URL object
-            URL url ;
-
-
-            // Extract relevant fields from the JSON response and create an {@link Event} object
-            for(int z =0; z<devices.size();z++){
-                // Perform HTTP request to the URL and receive a JSON response back
-                String jsonResponse = "";
-                try {
-                    url = createUrl(devices.get(z).getCheckUrl());
-                    if(url == null){}else{jsonResponse = makeHttpRequest(url);}
-                } catch (IOException e) {
-                    // TODO Handle the IOException
-                }
-
-                if(jsonResponse.equals("0l")){
-                    devices.get(z).setmStatus(false);
-                }
-                if(jsonResponse.equals("1h")){
-                    devices.get(z).setmStatus(true);
-                }
-
-            }
-
-            // Return the {@link Event} object as the result fo the {@link TsunamiAsyncTask}
-            return devices;
-        }
-
-
-        @Override
-        protected void onPostExecute(ArrayList<Device> earthquake) {
-            if (earthquake == null) {
-                return;
-            }
-
-            //MainFragment.dataNotify();
-        }
-
-        private URL createUrl(String stringUrl) {
-            URL url = null;
-            try {
-                url = new URL(stringUrl);
-            } catch (MalformedURLException exception) {
-                Log.e("", "Error with creating URL", exception);
-                return null;
-            }
-            return url;
-        }
-
-
-        private String makeHttpRequest(URL url) throws IOException {
-            String jsonResponse = "";
-            //if (url == null){
-            //    return jsonResponse;
-            //}
-            HttpURLConnection urlConnection = null;
-             InputStream inputStream = null;
-            try {
-                urlConnection = (HttpURLConnection) url.openConnection();
-                //urlConnection.setRequestMethod("GET");
-                //urlConnection.setReadTimeout(10000 /* milliseconds */);
-              // /* urlConnection.setConnectTimeout(15000 /* milliseconds */);
-                urlConnection.connect();
-
-                 if(urlConnection.getResponseCode()==200){
-                       inputStream = urlConnection.getInputStream();
-                        jsonResponse = readFromStream(inputStream);
-                   } else {
-                        Log.e("MainActivity","" + urlConnection.getResponseCode());
-                     Toast toast = Toast.makeText(getApplicationContext(),"Could not connect to server", Toast.LENGTH_SHORT);
-                     toast.show();
-                  }
-
-
-            } catch (IOException e) {
-                // TODO: Handle the exception
-                Log.e("MainActivity", e.getMessage());
-                Toast toast = Toast.makeText(getApplicationContext(),"Could not connect to server", Toast.LENGTH_SHORT);
-                toast.show();
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                //if (inputStream != null) {
-                    //function must handle java.io.IOException here
-                  //  inputStream.close();
-               // }
-            }
-            return jsonResponse;
-
-        }
-
-        /**
-         * Convert the {@link InputStream} into a String which contains the
-         * whole JSON response from the server.
-         */
-        private String readFromStream(InputStream inputStream) throws IOException {
-            StringBuilder output = new StringBuilder();
-            if (inputStream != null) {
-                InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charset.forName("UTF-8"));
-                BufferedReader reader = new BufferedReader(inputStreamReader);
-                String line = reader.readLine();
-                while (line != null) {
-                    output.append(line);
-                    line = reader.readLine();
-                }
-            }
-            return output.toString();
-        }
-
-
-    }
 
 
     private class GetUrlAsyncTask extends AsyncTask<URL, Void, String> {
@@ -362,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
             // Perform HTTP request to the URL and receive a JSON response back
             String jsonResponse = "";
             try {
-                url = createUrl("http://192.168.1.1");//devices.get(e).getCheckUrl
+                url = createUrl("http://192.168.1.1");
                 jsonResponse = makeHttpRequest(url);
             } catch (IOException e) {
                 // TODO Handle the IOException
@@ -376,16 +272,22 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String dataFromUrl) {
+            //retrieving url from the device
+
+            //devices can have more than one controllable plug
             ArrayList<String> CheckUrl = new ArrayList<>();
             ArrayList<String> OnUrl = new ArrayList<>();
             ArrayList<String> OffUrl = new ArrayList<>();
+
             OffUrl.clear();
             OnUrl.clear();
             CheckUrl.clear();
+
             int StopOn = dataFromUrl.indexOf("StopOn");
             int StopOff = dataFromUrl.indexOf("StopOff");
             int StopCheck = dataFromUrl.indexOf("StopCheck");
 
+            //powering on urls
             if(dataFromUrl.contains("OnUrl")){
                 for (int i = 60;i<StopOn;i+=70){
                     int a = dataFromUrl.indexOf("OnUrl",i);
@@ -397,6 +299,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+            //powering off urls
             if(dataFromUrl.contains("OffUrl")){
                 for (int i = StopOn;i<StopOff;i+=70){
                     int a = dataFromUrl.indexOf("OffUrl",i);
@@ -408,6 +311,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+            //check urls
+            //unused, but still present in the devices declaration
             if(dataFromUrl.contains("CheckUrl")){
                 for (int i = StopOff;i<StopCheck;i+=70){
                     int a = dataFromUrl.indexOf("CheckUrl",i);
@@ -419,13 +324,21 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+
+            //creating new device object with the urls above
             for (int i = 0;i<OffUrl.size();i++){
                 devices.add(new Device("New plug",OnUrl.get(i),OffUrl.get(i),CheckUrl.get(i)));
                 //MainFragment.dataNotify(devices);
                 Save();
             }
+
             Log.e("finitop","sono a posto così grazie");
+
+
+            //updating the layout
             MainFragment.dataNotify(devices);
+
+
             /*if(devices.size()>0){
                 listView.setVisibility(View.VISIBLE);
                 instructionsTextView.setVisibility(View.GONE);

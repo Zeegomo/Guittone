@@ -11,9 +11,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.util.List;
 import android.os.Handler;
+import android.widget.Toast;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.XAxis;
@@ -37,6 +39,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static android.R.attr.entries;
+import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
+import static com.example.android.guittone.R.id.last30_textview;
+import static com.example.android.guittone.R.id.offline_textview;
+import static com.example.android.guittone.R.id.online_layout;
+import static com.example.android.guittone.R.id.today_textview;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -50,8 +58,11 @@ public class PowerFragment extends Fragment {
 
     ArrayList<PowerChart> power = new ArrayList<>();
     BarChart chart;
-    TextView today_textview;
-    TextView last30_textview;
+    TextView todayTextview;
+    TextView last30Textview;
+    TextView offlineTextview;
+    LinearLayout onlineLayout;
+    boolean dataintegrity;
     int totalpower;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -63,8 +74,12 @@ public class PowerFragment extends Fragment {
 
         //Initialize the power chart used to represent Arduino data
         chart = (BarChart) rootView.findViewById(R.id.chart);
-        today_textview = (TextView) rootView.findViewById(R.id.today_textview);
-        last30_textview = (TextView) rootView.findViewById(R.id.last30_textview);
+        todayTextview = (TextView) rootView.findViewById(today_textview);
+        last30Textview = (TextView) rootView.findViewById(last30_textview);
+        offlineTextview = (TextView) rootView.findViewById(offline_textview);
+        onlineLayout = (LinearLayout) rootView.findViewById(online_layout);
+        offlineTextview.setVisibility(View.INVISIBLE);
+
         //API JSON request to retrieve Arduino data
         //JSONAsyncTask task = new JSONAsyncTask();
         //task.execute();
@@ -96,7 +111,7 @@ public class PowerFragment extends Fragment {
                 });
             }
         };
-        timer.schedule(doAsynchronousTask, 0, 100000); //execute in every 50000 ms
+        timer.schedule(doAsynchronousTask, 0, 100000); //execute in every 100000 ms
     }
 
 
@@ -224,15 +239,17 @@ public class PowerFragment extends Fragment {
 
 
     }
+
     public void JSONparser(String json){
 
         //Check data integrity
         if (TextUtils.isEmpty(json)) {
             Log.e("null","ss");
+            dataintegrity = false;
             return;
         }
 
-
+        dataintegrity = true;
         JSONObject object;
 
         try {
@@ -242,7 +259,7 @@ public class PowerFragment extends Fragment {
             int size = baseJsonResponse.length();
 
             //repeats for every item of the JSONArray
-            for (int i=0; i<size; i++) {
+            for (int i = 0; i < size; i++) {
 
                 //get object n. i from the JSONArray
                 object = baseJsonResponse.getJSONObject(i);
@@ -251,75 +268,104 @@ public class PowerFragment extends Fragment {
                 JSONObject _id = object.getJSONObject("_id");
 
                 //create a new PowerChart object with power per day
-                power.add(new PowerChart(object.getInt("totalPower"), _id.getInt("day"),_id.getInt("month")));
+                power.add(new PowerChart((int)(object.getInt("totalPower")*0.002777), _id.getInt("day"), _id.getInt("month")));
 
                 Log.d("powerchart", object.getDouble("totalPower") + "ss");
                 Log.d("powerchart", power + "");
-                Log.d("id", _id+ " id");
-                Log.d("id", _id.getInt("day") + "day" + _id.getInt("month") +"month" );
+                Log.d("id", _id + " id");
+                Log.d("id", _id.getInt("day") + "day" + _id.getInt("month") + "month");
 
             }
-        }catch (JSONException e){Log.e("1","d");}
+        } catch (JSONException e) {
+            Log.e("JSNOParser", "jsonparser exception");
+        }
 
     }
 
     public void Draw(){
-        totalpower = 0;
-        List<BarEntry> entries = new ArrayList<>();
-        entries.clear();
-        for (int zz = 0; zz< power.size(); zz++){
-            //add elements to the chart data
-            if(zz<30){
-                entries.add(new BarEntry( (float) zz, (float) power.get(zz).getPower()));
-                totalpower += power.get(zz).getPower();
+
+        if (dataintegrity) {
+
+            //make online layout visible
+            chart.setVisibility(VISIBLE);
+            onlineLayout.setVisibility(VISIBLE);
+            offlineTextview.setVisibility(GONE);
+
+
+            totalpower = 0;
+            List<BarEntry> entries = new ArrayList<>();
+            entries.clear();
+            for (int zz = 0; zz < power.size(); zz++) {
+                //add elements to the chart data
+                if (zz < 30) {
+                    entries.add(new BarEntry((float) zz, (float) power.get(zz).getPower()));
+                    totalpower += power.get(zz).getPower();
+                    Log.e("day" +zz, power.get(zz).getPower()+"");
+                }
+
             }
 
+            //power textviews assignment
+            todayTextview.setText(String.valueOf(power.get(0).getPower()));
+            last30Textview.setText(String.valueOf(totalpower));
+
+
+
+            //just some strange variables
+            Description desc = new Description();
+            desc.setText("");
+
+            // Data Configuration
+            BarDataSet set = new BarDataSet(entries, "Wh");
+            BarData data = new BarData(set);
+            data.setValueTextSize(0f);
+            data.setValueTextColor(Color.WHITE);
+            data.setBarWidth(0.9f);
+
+            // Y Axis
+            YAxis left = chart.getAxisLeft();
+            left.setDrawLabels(true); // no axis labels
+            left.setDrawAxisLine(true); // no axis line
+            left.setDrawGridLines(false); // no grid lines
+            left.setDrawZeroLine(true); // draw a zero line
+            chart.getAxisRight().setEnabled(false);
+
+            // X Axis
+            XAxis xAxis = chart.getXAxis();
+            xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+            xAxis.setTextSize(0f);
+            xAxis.setTextColor(Color.WHITE);
+            xAxis.setDrawAxisLine(true);
+            xAxis.setDrawGridLines(false);
+
+            // Chart Setting
+            chart.setTouchEnabled(false);
+            chart.setDragEnabled(false);
+            chart.setScaleEnabled(false);
+            chart.setScaleXEnabled(false);
+            chart.setScaleYEnabled(false);
+            chart.setPinchZoom(false);
+            chart.setDoubleTapToZoomEnabled(false);
+            chart.setDescription(desc);
+            chart.setData(data);
+            chart.setFitBars(true); // make the x-axis fit exactly all bars
+            chart.invalidate();
+
+        }else{
+            //no connection available
+            Log.e("powerfragment","no connection available");
+
+
+            //make online layout invisible
+            chart.setVisibility(GONE);
+            onlineLayout.setVisibility(GONE);
+            offlineTextview.setVisibility(VISIBLE);
+
+            //warn the user with a toast message
+            //Toast toast = Toast.makeText(getContext(), "Could not connect to server - Check your internet connection", Toast.LENGTH_SHORT);
+            //toast.show();
+
         }
-
-        //power textviews assignment
-        today_textview.setText(String.valueOf(power.get(0).getPower()));
-        last30_textview.setText(String.valueOf(totalpower));
-
-
-        //just some strange variables
-        Description desc = new Description();
-        desc.setText("");
-
-        // Data Configuration
-        BarDataSet set = new BarDataSet(entries, "kWh");
-        BarData data = new BarData(set);
-        data.setValueTextSize(0f);
-        data.setValueTextColor(Color.WHITE);
-        data.setBarWidth(0.9f);
-
-        // Y Axis
-        YAxis left = chart.getAxisLeft();
-        left.setDrawLabels(true); // no axis labels
-        left.setDrawAxisLine(true); // no axis line
-        left.setDrawGridLines(false); // no grid lines
-        left.setDrawZeroLine(true); // draw a zero line
-        chart.getAxisRight().setEnabled(false);
-
-        // X Axis
-        XAxis xAxis = chart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextSize(0f);
-        xAxis.setTextColor(Color.WHITE);
-        xAxis.setDrawAxisLine(true);
-        xAxis.setDrawGridLines(false);
-
-        // Chart Setting
-        chart.setTouchEnabled(false);
-        chart.setDragEnabled(false);
-        chart.setScaleEnabled(false);
-        chart.setScaleXEnabled(false);
-        chart.setScaleYEnabled(false);
-        chart.setPinchZoom(false);
-        chart.setDoubleTapToZoomEnabled(false);
-        chart.setDescription(desc);
-        chart.setData(data);
-        chart.setFitBars(true); // make the x-axis fit exactly all bars
-        chart.invalidate();
     }
 
 

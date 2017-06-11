@@ -68,6 +68,8 @@ public class MainFragment extends Fragment {
         //((AppCompatActivity)getActivity()).setSupportActionBar(myToolbar);
         //setHasOptionsMenu(true);
 
+
+        //retrieving data from saved files
         SharedPreferences appSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         Gson gson = new Gson();
         String json = appSharedPrefs.getString("Devices", "");
@@ -77,6 +79,7 @@ public class MainFragment extends Fragment {
             devices = gson.fromJson(json, new TypeToken<ArrayList<Device>>() {
             }.getType());
         }
+
 
         //View initialization
         webView = (WebView) rootView.findViewById(R.id.webview);
@@ -89,6 +92,7 @@ public class MainFragment extends Fragment {
         return rootView;
     }
 
+    //updating views
     public static void dataNotify(ArrayList<Device> device){
         devices = device;
         listView.setAdapter(adapter);

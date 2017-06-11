@@ -6,6 +6,15 @@
     android:weightSum="4"
     android:padding="48dp">
 
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Could not connect to server - check your internet connection"
+        android:gravity="center_horizontal"
+        android:id="@+id/offline_textview"
+        />
+
     <com.github.mikephil.charting.charts.BarChart
         android:id="@+id/chart"
         android:layout_width="match_parent"
@@ -20,7 +29,8 @@
         android:layout_below="@id/chart"
         android:orientation="horizontal"
         android:weightSum="2"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:id="@+id/online_layout">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -49,7 +59,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="kWh"
+                android:text="Wh"
                 android:textSize="18dp"
                 android:gravity="center_horizontal" />
         </LinearLayout>
@@ -78,7 +88,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="kWh"
+                android:text="Wh"
                 android:textSize="18dp"
                 android:gravity="center_horizontal"
                 />
